@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<table style="text-align: right;">
+		<tr>
+			<td>出生日期：</td>
+			<td><select id="birth_year" onchange="setDays(this,birth_month,birth_day);">
+					<option value="">年</option>
+					
+			</select> <select id="birth_month" onchange="setDays(birth_year,this,birth_day);">
+					<option value="">月</option>
+					
+			</select> <select id="birth_day" onchange="show()">
+					<option value="">日</option>
+					
+			</select>
+			<span id="xingzhuo" style="color:green;"></span>
+			</td>
+		</tr>
+	</table>
+
+	<script type="text/javascript">
+
+		function createXmlDom(){
+			var xmldom=null;
+			if(window.ActiveXObject){	
+				xmldom=createIeXmlDom();
+			}else if(document.implementation&&document.implementation.createDocument){
+				//document.implementation.createDocument()函数接受3个参数：指定文档的命名空间的一个命名空间URL，根标签名和一个doc类型。
+				xmldom=document.implementation.createDocument("","",null);
+			}else{
+		        alert("您的浏览器不支持XML DOM");
+		    }
+		    return xmldom;
+		}
+
+		//创建最合适的ie浏览器支持的xmldom
+		function createIeXmlDom(){
+			//如果是IE8则此项不需要，如果是IE10则必须要MSXML2.DOMDocument.6.0
+			var arrSingatures=["MSXML2.DOMDocument.6.0","MSXML2.DOMDocument.5.0","MSXML2.DOMDocument.4.0","MSXML2.DOMDocument.3.0","MSXML2.DOMDocument","Microsoft.XMLDOM"];
+			for(var i=0;i<arrSingatures.length;i++){
+		        try{
+		           var iexmldom=new ActiveXObject(arrSingatures[i]);  //创建一个微软的XML文档对象
+		           return iexmldom;
+		        }catch(ex){   
+		        	alert("MSXML组件还未安装到您的系统");   
+		        }        
+		    }
+		}
+
+
+		
+		window.onload=function(){
+			var i = -1;
+			// 添加年份，从1910年开始
+			for (i = new Date().getFullYear(); i >1901; i--) {
+				addOption(birth_year, i, i );
+				/*// 默认选中1988年
+			    if (i == 1988) {
+			    	birth_year.options[i-1910].selected = true;
+			    }*/
+			}
+			// 添加月份
+			for (i = 1; i <= 12; i++) {
+			     addOption(birth_month, i, i);
+			}
+			// 添加天份，先默认31天
+			for (i = 1; i <= 31; i++) {
+			    addOption(birth_day, i, i);
+			}
+		};
+
+	 
+		// 设置每个月份的天数
+		function setDays(year, month,day) {
+			var monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+			var yea = year.options[year.selectedIndex].text;
+			var mon = month.options[month.selectedIndex].text;
+			var num = monthDays[mon - 1];
+			if (mon == 2 && isLeapYear(yea)) {
+				num++;
+			}
+			for (var j = day.options.length - 1; j >=num; j--) {
+		        day.remove(j);
+		    }
+		    for (var i = day.options.length; i <= num; i++) {
+		        addOption(birth_day,i,i);
+		    }
+			//前提：日期已经选择了，去改月份才调用
+			if(document.getElementById("birth_day").value!="" && document.getElementById("birth_day").value!=null){
+				show();
+			}
+		}
+			 
+		// 判断是否闰年
+		function isLeapYear(year)
+		{
+			return (year % 4 == 0 || (year % 100 == 0 && year % 400 == 0));
+		}
+			 
+		// 向select尾部添加option
+		function addOption(selectbox, text, value) {
+			var option = document.createElement("option");
+			option.text = text;
+		    option.value = value;
+		    selectbox.options.add(option);
+		}
+
+		//显示星座
+		function show(){
+			var xmldom;
+			//兼容谷歌浏览器
+			if(window.DOMParser && !window.ActiveXObject){
+				//由于谷歌浏览器不支持读取本地文件，所以要放到服务器里面去才有效果
+				var xmlhttp=new XMLHttpRequest();
+				xmlhttp.open("GET","xingzuo.xml",false);
+				xmlhttp.send(null);
+				if(xmlhttp.readyState==4){		//谷歌浏览器默认为异步加载
+					xmldom=xmlhttp.responseXML.documentElement;
+				}
+			}else{
+				xmldom=createXmlDom();
+	      		xmldom.async=false;
+	      		xmldom.load("xingzuo.xml");
+			}
+			
+			var xingzuos=xmldom.getElementsByTagName("string");
+			var month=document.getElementById("birth_month").value;
+			var day=document.getElementById("birth_day").value;
+			if(day<10){
+				day="0"+day;
+			}
+			var xtime=parseInt(month+day);
+			var xz;
+			for(var i=0;i<xingzuos.length;i++){
+				//取出时间
+				var times=parseInt(xingzuos[i].getAttribute("time"));
+				if(i==11){
+					if(xtime>=times && xtime<parseInt(xingzuos[0].getAttribute("time")+1230)){
+						xz=xingzuos[i].firstChild.nodeValue;
+					}
+				}else{
+					//103
+					if(xtime>=times && xtime<parseInt(xingzuos[i+1].getAttribute("time"))){
+						xz=xingzuos[i].firstChild.nodeValue;
+					}
+				}
+			}
+			document.getElementById("xingzhuo").innerHTML=xz;
+		}
+	</script>
+</body>
+</html>
